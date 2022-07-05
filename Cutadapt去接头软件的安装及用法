@@ -1,0 +1,8 @@
+网址https://www.jianshu.com/p/0878bbc76449
+-a     去除的是read1的3’的接头序列，因此-a参数后接3′ Adapter(3’端接头)
+-A     去除的是read2的3’的接头序列，那么-A参数后应该接5′ Adapter(5’端接头) 的反向互补序列
+-o     read1的输出文件
+-p     read2的输出文件
+-e     最大错配比例，比如cutadapt在某条序列上检测的接头有15bp长，那么允许这个匹配上的15bp接头中有15*0.1约为1个碱基的错配
+-m –minimum-length         切除接头后的序列长度的最小值
+-O –overlap                默认必须至少有3个碱基匹配时才会认为是adapter序列，但有时可以适当的调大
