@@ -1,5 +1,37 @@
-在ubuntu里面打开
+介绍：
 
+      database                   Workflow                        tools
+======================================================================================
+  
++=================+     +-------------------------+                               
+|     database    |     |      Quality Analysis   |---------------> fastqc 
++=================+     +-------------------------+                                
+|+------+         |                 v                                      
+|| rRNA |---------|--+  +-------------------------+
+|+------+         |  |  | Base Quality Filtering  |------------> TrimGalore
+|  +------+       |  |  +-------------------------+
+|  |genome|-------|-+|              v
+|  +------+       | ||  +-------------------------+
+|     +----------+| |+->| rRNA Sequence Filtering |------------> SortMeRNA
+|     |  Genome  || |   +-------------------------+
+|     |Annotation|| |               v
+|     +----------+| |   +-------------------------+
+|          |      | +-->|   Genome Alignment      |------------> hisat2
++----------|------+     +-------------------------+
+           |                        v
+           |            +-------------------------+
+           +----------->|  Count Mapped Reads     |------------> HTseq
+                        +-------------------------+
+                                    v
+                        +-------------------------+
+                        | Differential Expression |------------> DESeq2
+                        +-------------------------+
+                                    v
+                        +-------------------------+
+                        |     Pathway analysis    |------------> ClusterProfiler
+                        +-------------------------+
+
+ 在ubuntu里面打开
 # 1. 前期准备
 
 ```
@@ -72,7 +104,7 @@ pip install multiqc
 pip install cutadapt
 ```
 ## 2.5 Trim Galore
-使用perl脚本编写的工具，是对cutapater和fastqc命令的封装。是自动检测adapter的质控软件。适用于所有高通量测序，包括RRBS(Reduced Representation Bisulfite-Seq ), Illumina、Nextera 和smallRNA测序平台的双端和单端数据
+使用perl脚本编写的工具，是对cutapater和fastqc命令的封装。是自动检测adapter的质控软件。适用于所有高通量测序，包括RRBS(Reduced Representation Bisulfite-Seq ), Illumina、Nextera 和small RNA测序平台的双端和单端数据
 
 ```
 cd /mnt/c/shengxin/biosoft
@@ -80,13 +112,15 @@ cd /mnt/c/shengxin/biosoft
 wget https://github.com/FelixKrueger/TrimGalore/archive/0.6.3.tar.gz -O TrimGalore.gz
 
 gzip -d 0.6.10.tar.gz
+#gzip -d --decompress --uncompress 解压
 ```
-     gzip -d --decompress --uncompress 解压
+
 - fastp: 一款超快速全功能的FASTQ文件自动化质控+过滤+校正+预处理软件
 - trimmomatic
 
 trimmomatic是一款多线程命令行工具，可以用来修剪Illumina (FASTQ)数据以及删除接头，是目前使用最多的高通量测序数据清洗的工具。
 
+安装如下
 ```
 cd /mnt/c/shengxin/biosoft
 wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.38.zip
@@ -96,6 +130,8 @@ cd Trimmomatic-0.38
 export PATH="$(pwd):$PATH"（导入临时环境变量）
 ```
 ## 2.6 hisat2
+Hisat2主要用于转录组数据的比对
+
 首先用浏览器进入[hisat2](https://daehwankimlab.github.io/hisat2/)
 在右侧有对应的不同系统的安装版本，根据自己的系统进行选择
 
@@ -181,6 +217,11 @@ brew install r
 ## 2.10 Rstudio
 因为R自身带的界面使用起来不是特别方便和美观，这里使用Rstudio来对R的显示效果进行提升，除此之外还有其他功能。
 
+进入网站：https://www.rstudio.com/products/rstudio/download/
+
+点击```RStudio Desktop Open Source License``` 下面的DOWNLOAD，之后选择对应的版本的，这里选择```Windows 10/11 OS```版本
+```RSTUDIO-2023.03.1-446.EXE```下载完成之后双击安装。
+
 ## 2.11 parallel
 parallel是进行多线程运行的工具，并行运行可以提升效率，节省时间
 ```
@@ -218,13 +259,19 @@ brew install parallel
 第三部分<sequence type>是序列类型：
 
 · dna：原原本本的DNA序列
+
 · dna_rm（hard_mask）：利用RepeatMasker工具将重复区域和低复杂度区域标记成一串N
+
 · dna_sm（soft_mask）：所有重复区域和低复杂度区域替换为小写的碱基
+
 第四部分<id type>是基因组类型：
 
 · chromosome：染色体序列
+
 · nonchromosomal：存储目前没有比对到染色体的DNA序列
+
 · seqlevel：一般是scaffolds, chunks 或clones，还未组装到染色体标准的序列信息
+
 
 第五部分<id>是实际的序列编号，比如属于哪条染色体或者属于哪个scaffold, chunk 或clone
 
@@ -248,10 +295,11 @@ brew install parallel
 基因组数据说明
 
 格式为.fasta，格式为：
-
+```
 >seq_id
 AGCTGAGCTAGCTACGGAGCTGAC
 ACGACTGATCTGACGTTGATCGTT
+```
 
 文件中以>开头的是序列的名称，下面接着的ATGC是这条序列信息，基因组fasta文件记录大鼠的所有的被测得的染色体的序列信息，目前大鼠的基因组测序版本到了7.2
 
@@ -277,7 +325,7 @@ gzip -d Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa.gz
 
 ```cat R7.2.fa | grep "^>" ```
 
-结果：除了1-20号+X+Y+MT之外还有很多别的ID名。这些都是scaffold
+结果：除了```1-20号+X+Y+MT```之外还有很多别的ID名。这些都是```scaffold```
 
 ![picture][picture base64]
 
@@ -286,10 +334,11 @@ gzip -d Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa.gz
 ```
 # 首先将之前的名称更改一下
 mv R7.2.fa R7.2.raw.fa
+mv（英文全拼：move file）命令用来为文件或目录改名、或将文件或目录移入其它位置
 
 # 然后去除染色体编号后的描述信息
 $ cat R7.2.raw.fa | perl -n -e 'if(m/^>(.+?)(?:\s|$)/){ print ">$1\n";}else{print}' > R7.2.fa
-多行匹配，如果匹配到了以>开头多个字母空格或者$，将  >多个字母  打印出来
+m多行匹配，如果匹配到了以>开头多个字母空格或者$，将  >多个字母打印出来
 
 # 删除
 $ rm R7.2.raw.fa
@@ -374,7 +423,7 @@ cat R7.2.fa | perl -n -e '
   
 基因组索引文件就像一本书的目录，里面集成了比对软件的算法，所以虽然基因组序列是一样的，但不同的比对软件需要不同的基因组索引文件。
 
-在[hisat2](http://daehwankimlab.github.io/hisat2/) 官网上可以找到现成的已经建立好索引的大鼠基因组文件，如果电脑配置一般建议直接下载好索引文件，可以直接下载这个索引文件（因为建立索引文件时间较长1个小时以上），这个索引文件是可以自己用命令基于之前下载的基因组文件自行建立的。
+在[hisat2](http://daehwankimlab.github.io/hisat2/) 官网上可以找到现成的已经建立好索引的大鼠基因组文件 （在```download```里面找），如果电脑配置一般建议直接下载好索引文件，可以直接下载这个索引文件（因为建立索引文件时间较长1个小时以上），这个索引文件是可以自己用命令基于之前下载的基因组文件自行建立的。
 
 方法1：
 
